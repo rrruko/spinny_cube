@@ -10,13 +10,15 @@ section .bss
 	RenderBuffer resb PIXEL_COUNT
 	
 section .data
-	; I stole this code from here: https://stackoverflow.com/questions/30247644/clean-console-on-assembly
-	; This is just a regular ordinary string containing an ANSI escape code.
-	; ANSI escape codes are special strings that linux terminal apps interpret
-	; as commands when printed to standard output. You can also get colored
-	; output in linux terminals by using ANSI escape codes.
+	; I stole the code for ClearTerm from here: https://stackoverflow.com/questions/30247644/clean-console-on-assembly
+	;
+	; This is just a regular ordinary string containing an ANSI escape
+	; code. ANSI escape codes are special strings that linux terminal apps
+	; interpret as commands when printed to standard output. You can also
+	; get colored output in linux terminals by using ANSI escape codes.
 	;
 	; Read more here: https://en.wikipedia.org/wiki/ANSI_escape_code
+
 	ClearTerm	db 27,"[H",27,"[2J" ; <ESC> [H <ESC> [2J
 	CLEARLEN 	equ $-ClearTerm ; Length of term clear string
 
@@ -28,14 +30,14 @@ section .data
 	; The cube's object coordinates,
 	; which should never be mutated
 	FuckingCube:
-		vert_1 dd -0.5,-0.5,-0.5
-		vert_2 dd -0.5,-0.5,0.5
-		vert_3 dd -0.5,0.5,-0.5
-		vert_4 dd -0.5,0.5,0.5
-		vert_5 dd 0.5,-0.5,-0.5
-		vert_6 dd 0.5,-0.5,0.5
-		vert_7 dd 0.5,0.5,-0.5
-		vert_8 dd 0.5,0.5,0.5
+		vert_1 dd -0.5, -0.5, -0.5
+		vert_2 dd -0.5, -0.5,  0.5
+		vert_3 dd -0.5,  0.5, -0.5
+		vert_4 dd -0.5,  0.5,  0.5
+		vert_5 dd  0.5, -0.5, -0.5
+		vert_6 dd  0.5, -0.5,  0.5
+		vert_7 dd  0.5,  0.5, -0.5
+		vert_8 dd  0.5,  0.5,  0.5
 	VECTOR_SIZE 	equ vert_8-vert_7
 
 	; The cube's world coordinates
