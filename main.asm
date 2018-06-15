@@ -52,7 +52,27 @@ section .data
 		w_vert_7 dd 0.0, 0.0, 0.0
 		w_vert_8 dd 0.0, 0.0, 0.0
 
-	; 
+	CubeEdges:
+		dd 0*12, 1*12
+		dd 1*12, 2*12
+		dd 2*12, 3*12
+		dd 3*12, 0*12
+		
+		dd 4*12, 5*12
+		dd 5*12, 6*12
+		dd 6*12, 7*12
+		dd 7*12, 4*12
+
+		dd 0*12, 4*12
+		dd 1*12, 5*12
+		dd 2*12, 6*12
+		dd 3*12, 7*12
+	 	EDGES_END  equ $
+		EDGE_COUNT equ 12
+		EDGE_SIZE  equ 8
+		
+
+	; These entries get filled in when the matrix update proc is called
 	RotationMatrix:
 		dd  1.0,  0.0,  0.0
 		dd  0.0, -0.0, -0.0
@@ -73,8 +93,11 @@ section .data
 
 	neg1 dd -1.0
 
+	bumbo1 dd 0, 0
+	bumbo2 dd 79, 3
+
 section .text
-extern dot_product, rotate_vector
+extern dot_product, rotate_vector, bresenham
 %include "mov_vector.mac"
 	_start:
 	jmp .main_loop
@@ -198,10 +221,48 @@ extern dot_product, rotate_vector
 	mov edx, SCREEN_W              ; Y gets multiplied with screen width
 	mul edx                        ; before adding to RenderBuffer
 	add ebx, eax                   ; because it's a number of rows
-	mov [ebx], byte '@'            ; X is just a number of columns
+	mov [ebx], byte '*'            ; X is just a number of columns
 	sub ecx, VECTOR_SIZE           ; so we can just add X to RenderBuffer
 	cmp ecx, 0
 	jge .draw_points_loop          ; Subtract one vector size and loop back
+
+	;ret
+
+	mov ecx, (EDGES_END-EDGE_SIZE)
+	.draw_edges_loop:
+	  mov eax, w_vert_1
+	  add eax, [ecx]
+	  mov ebx, TwoDIntVector
+	  call .project_vector
+	  mov eax, bumbo1
+	  mov edx, [ebx]
+	  mov [eax], edx
+	  add eax, 4
+	  mov edx, [ebx+4]
+	  mov [eax], edx
+	  mov eax, w_vert_1
+	  add eax, [ecx+4]
+	  mov ebx, TwoDIntVector
+	  call .project_vector
+	  mov eax, bumbo2
+	  mov edx, [ebx]
+	  mov [eax], edx
+	  add eax, 4
+	  mov edx, [ebx+4]
+	  mov [eax], edx
+
+	  push ecx
+	  mov eax, bumbo1
+	  mov ebx, bumbo2
+	  mov ecx, RenderBuffer
+	  call bresenham
+	  pop ecx
+
+	sub ecx, EDGE_SIZE
+	cmp ecx, CubeEdges
+	jge .draw_edges_loop
+
+
 	ret
 	
 	; Debug procedure
