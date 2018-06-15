@@ -19,23 +19,27 @@ section .data
 	; Read more here: https://en.wikipedia.org/wiki/ANSI_escape_code
 	ClearTerm	db 27,"[H",27,"[2J" ; <ESC> [H <ESC> [2J
 	CLEARLEN 	equ $-ClearTerm ; Length of term clear string
-	TestString	db "Hey babe"
-	TESTLEN 	equ $-TestString ; Length of test string
+
+	; Struct used by sleep system call
 	OneSixtiethSecond:
 		tv_sec dd 0
 		tv_nsec dd 16666666
 
-	Acc db 0
+	; The cube's object coordinates,
+	; which should never be mutated
 	FuckingCube:
-		vert_1 dd 0.0,0.0,0.0
-		vert_2 dd 0.0,0.0,1.0
-		vert_3 dd 0.0,1.0,0.0
-		vert_4 dd 0.0,1.0,1.0
-		vert_5 dd 1.0,0.0,0.0
-		vert_6 dd 1.0,0.0,1.0
-		vert_7 dd 1.0,1.0,0.0
-		vert_8 dd 1.0,1.0,1.0
-	VERTSIZE 	equ vert_8-vert_7
+		vert_1 dd -0.5,-0.5,-0.5
+		vert_2 dd -0.5,-0.5,0.5
+		vert_3 dd -0.5,0.5,-0.5
+		vert_4 dd -0.5,0.5,0.5
+		vert_5 dd 0.5,-0.5,-0.5
+		vert_6 dd 0.5,-0.5,0.5
+		vert_7 dd 0.5,0.5,-0.5
+		vert_8 dd 0.5,0.5,0.5
+	VECTOR_SIZE 	equ vert_8-vert_7
+
+	; The cube's world coordinates
+	; These are computed from the object coordinates each frame
 	WorldCube:
 		w_vert_1 dd 0.0, 0.0, 0.0
 		w_vert_2 dd 0.0, 0.0, 0.0
@@ -45,10 +49,12 @@ section .data
 		w_vert_6 dd 0.0, 0.0, 0.0
 		w_vert_7 dd 0.0, 0.0, 0.0
 		w_vert_8 dd 0.0, 0.0, 0.0
+
+	; 
 	RotationMatrix:
-		dd 1.0, 0.0, 0.0
-		dd 0.0, 0.0, 0.0
-		dd 0.0, 0.0, 0.0
+		dd  1.0,  0.0,  0.0
+		dd  0.0, -0.0, -0.0
+		dd  0.0, -0.0, -0.0
 
 	DotProductOut dd 0
 	
@@ -142,9 +148,9 @@ extern dot_product, rotate_vector
 
 	.render_to_buffer:
 	mov ecx, PIXEL_COUNT
-	.render_loop:
-	mov eax, ecx
-	mov ebx, 81
+	.render_loop:                  ; Write a background to the buffer
+	mov eax, ecx                   ; (all ' ' spaces)
+	mov ebx, 81                    ; while also inserting newlines each row
 	xor edx, edx
 	div ebx
 	cmp edx, 0
@@ -178,24 +184,25 @@ extern dot_product, rotate_vector
 	loop .render_loop
 	; Okay now we want to draw the points.
 
-	mov ecx, 84
-	.draw_points_loop:
-	mov eax, w_vert_1
+	mov ecx, (VECTOR_SIZE*7)       ; 84 = vector alignment (12) * 7 vectors
+	.draw_points_loop:             ; There are 8 vectors but this is an
+	mov eax, w_vert_1              ;   array so we start counting at 0.
 	add eax, ecx
 	mov ebx, TwoDIntVector
 	call .project_vector
 	mov ebx, RenderBuffer
-	add ebx, [TwoDIntVector+4]
-	mov eax, [TwoDIntVector]
-	mov edx, 81
-	mul edx
-	add ebx, eax
-	mov [ebx], byte '@'
-	sub ecx, 12
+	add ebx, [TwoDIntVector]       ; <- X-coordinate
+	mov eax, [TwoDIntVector+4]     ; <- Y-coordinate
+	mov edx, 81                    ; Y gets multiplied with screen width
+	mul edx                        ; before adding to RenderBuffer
+	add ebx, eax                   ; because it's a number of rows
+	mov [ebx], byte '@'            ; X is just a number of columns
+	sub ecx, VECTOR_SIZE           ; so we can just add X to RenderBuffer
 	cmp ecx, 0
-	jge .draw_points_loop
+	jge .draw_points_loop          ; Subtract one vector size and loop back
 	ret
 	
+	; Debug procedure
 	.whatinthegoddamn:
 	mov eax, 4
 	mov ebx, 1
@@ -209,14 +216,16 @@ extern dot_product, rotate_vector
 	fld dword [eax+4]
 	fmul dword [TheNumberTen]
 	fadd dword [TheNumberTwenty]
-	fistp dword [ebx]
+	fistp dword [ebx+4]
 	fld dword [eax+8]
 	fmul dword [TheNumberTwenty]
 	fadd dword [TheNumberThirty]
 	fadd dword [TheNumberTen]
-	fistp dword [ebx+4]
+	fistp dword [ebx]
 	ret
 
+	; This constructs a matrix that rotates a
+	; vector by (timer) radians along the X axis only.
 	.update_matrix:
 	; increment timer by timestep
 	fld dword [timer]
@@ -237,6 +246,8 @@ extern dot_product, rotate_vector
 	fstp dword [RotationMatrix+20]
 	ret
 
+	; This constructs a matrix that rotates a
+	; vector by (timer) radians along the X and Y axes.
 	.update_matrix_alt:
 	fld dword [timer]
 	fadd dword [timestep]
@@ -274,7 +285,6 @@ extern dot_product, rotate_vector
 	call .rotate_cube_step
 	call .update_matrix_alt
 	call .render_to_buffer
-	;call .whatinthegoddamn
 	call .print_cube_rep
 	jmp .main_loop
 	
