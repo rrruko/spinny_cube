@@ -2,9 +2,9 @@ global _start
 
 global DotProductOut
 
-SCREEN_W equ 80
+SCREEN_W equ 81 ; 80 printable chars + 1 newline per row
 SCREEN_H equ 40
-PIXEL_COUNT equ (SCREEN_W+1)*SCREEN_H ; +1 for newlines
+PIXEL_COUNT equ SCREEN_W*SCREEN_H
 
 section .bss
 	RenderBuffer resb PIXEL_COUNT
@@ -150,14 +150,14 @@ extern dot_product, rotate_vector
 	mov ecx, PIXEL_COUNT
 	.render_loop:                  ; Write a background to the buffer
 	mov eax, ecx                   ; (all ' ' spaces)
-	mov ebx, 81                    ; while also inserting newlines each row
+	mov ebx, SCREEN_W              ; while also inserting newlines each row
 	xor edx, edx
 	div ebx
 	cmp edx, 0
 	je  .put_newline
 	cmp edx, 1
 	je .left_edge
-	cmp edx, 80
+	cmp edx, (SCREEN_W-1)
 	je .right_edge
 	jmp .fill
 	.put_newline:
@@ -193,7 +193,7 @@ extern dot_product, rotate_vector
 	mov ebx, RenderBuffer
 	add ebx, [TwoDIntVector]       ; <- X-coordinate
 	mov eax, [TwoDIntVector+4]     ; <- Y-coordinate
-	mov edx, 81                    ; Y gets multiplied with screen width
+	mov edx, SCREEN_W              ; Y gets multiplied with screen width
 	mul edx                        ; before adding to RenderBuffer
 	add ebx, eax                   ; because it's a number of rows
 	mov [ebx], byte '@'            ; X is just a number of columns
