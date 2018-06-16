@@ -30,19 +30,20 @@ section .data
 	; The cube's object coordinates,
 	; which should never be mutated
 	FuckingCube:
-		vert_1 dd -0.5, -0.5, -0.5
-		vert_2 dd -0.5, -0.5,  0.5
-		vert_3 dd -0.5,  0.5, -0.5
-		vert_4 dd -0.5,  0.5,  0.5
-		vert_5 dd  0.5, -0.5, -0.5
-		vert_6 dd  0.5, -0.5,  0.5
-		vert_7 dd  0.5,  0.5, -0.5
-		vert_8 dd  0.5,  0.5,  0.5
-	VECTOR_SIZE 	equ vert_8-vert_7
+		vert_0 dd -0.5, -0.5, -0.5
+		vert_1 dd -0.5, -0.5,  0.5
+		vert_2 dd -0.5,  0.5, -0.5
+		vert_3 dd -0.5,  0.5,  0.5
+		vert_4 dd  0.5, -0.5, -0.5
+		vert_5 dd  0.5, -0.5,  0.5
+		vert_6 dd  0.5,  0.5, -0.5
+		vert_7 dd  0.5,  0.5,  0.5
+	VECTOR_SIZE 	equ vert_7-vert_6
 
 	; The cube's world coordinates
 	; These are computed from the object coordinates each frame
 	WorldCube:
+		w_vert_0 dd 0.0, 0.0, 0.0
 		w_vert_1 dd 0.0, 0.0, 0.0
 		w_vert_2 dd 0.0, 0.0, 0.0
 		w_vert_3 dd 0.0, 0.0, 0.0
@@ -50,18 +51,17 @@ section .data
 		w_vert_5 dd 0.0, 0.0, 0.0
 		w_vert_6 dd 0.0, 0.0, 0.0
 		w_vert_7 dd 0.0, 0.0, 0.0
-		w_vert_8 dd 0.0, 0.0, 0.0
 
 	CubeEdges:
 		dd 0*12, 1*12
-		dd 1*12, 2*12
-		dd 2*12, 3*12
-		dd 3*12, 0*12
+		dd 1*12, 3*12
+		dd 2*12, 0*12
+		dd 3*12, 2*12
 		
 		dd 4*12, 5*12
-		dd 5*12, 6*12
-		dd 6*12, 7*12
-		dd 7*12, 4*12
+		dd 5*12, 7*12
+		dd 6*12, 4*12
+		dd 7*12, 6*12
 
 		dd 0*12, 4*12
 		dd 1*12, 5*12
@@ -138,6 +138,10 @@ extern dot_product, rotate_vector, bresenham
 	; Didn't use a loop here because I'm too lazy
 	.rotate_cube_step:
 	mov ebx, RotationMatrix
+	mov eax, vert_0
+	mov ecx, w_vert_0
+	call rotate_vector
+	mov ebx, RotationMatrix
 	mov eax, vert_1
 	mov ecx, w_vert_1
 	call rotate_vector
@@ -164,10 +168,6 @@ extern dot_product, rotate_vector, bresenham
 	mov ebx, RotationMatrix
 	mov eax, vert_7
 	mov ecx, w_vert_7
-	call rotate_vector
-	mov ebx, RotationMatrix
-	mov eax, vert_8
-	mov ecx, w_vert_8
 	call rotate_vector
 	ret
 
@@ -211,7 +211,7 @@ extern dot_product, rotate_vector, bresenham
 
 	mov ecx, (VECTOR_SIZE*7)       ; 84 = vector alignment (12) * 7 vectors
 	.draw_points_loop:             ; There are 8 vectors but this is an
-	mov eax, w_vert_1              ;   array so we start counting at 0.
+	mov eax, w_vert_0              ;   array so we start counting at 0.
 	add eax, ecx
 	mov ebx, TwoDIntVector
 	call .project_vector
@@ -230,7 +230,7 @@ extern dot_product, rotate_vector, bresenham
 
 	mov ecx, (EDGES_END-EDGE_SIZE)
 	.draw_edges_loop:
-	  mov eax, w_vert_1
+	  mov eax, w_vert_0
 	  add eax, [ecx]
 	  mov ebx, TwoDIntVector
 	  call .project_vector
@@ -240,7 +240,7 @@ extern dot_product, rotate_vector, bresenham
 	  add eax, 4
 	  mov edx, [ebx+4]
 	  mov [eax], edx
-	  mov eax, w_vert_1
+	  mov eax, w_vert_0
 	  add eax, [ecx+4]
 	  mov ebx, TwoDIntVector
 	  call .project_vector

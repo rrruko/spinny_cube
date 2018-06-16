@@ -22,7 +22,7 @@ global bresenham
 ; ecx points to a buffer
 bresenham:
 	pushad
-	;jmp .test_plot
+	;jmp .test_plot                ; Jump here to just plot endpoints
 	
 	mov [buffer], ecx
 
@@ -31,6 +31,8 @@ bresenham:
 	call .compute_deltaYSign
 	call .compute_deltaErr
 	call .init_currY
+	call .init_err
+	fwait
 
 	mov eax, [eax]
 	mov [startX], eax
@@ -50,30 +52,33 @@ bresenham:
 		mov ecx, [buffer]
 		call plot_point
 		pop ecx
-
+		
 		; error := error + deltaerr
 		fld dword [err]
 		fld dword [deltaErr]
 		faddp
 		fstp dword [err]
+		;pushad
+		;call .wtf
+		;popad
 		
 		.adjust_y: ; while error >= 0.5
-			fld dword [half]
 			fld dword [err]
+			fld dword [half]
 			fcomp
-			fstp st0
 			fstsw ax
-			fwait
+			fstp st0
 			sahf
-			jg .done_adjusting_y
+			fwait
+			jae .done_adjusting_y
 			; y := y + sign(deltaY) * 1
 			mov eax, [currY]
 			add eax, [deltaYSign]
 			mov [currY], eax
 
 			; error := error - 1.0
-			fld1
 			fld dword [err]
+			fld1
 			fsubp
 			fstp dword [err]
 		jmp .adjust_y
@@ -86,14 +91,14 @@ bresenham:
 	
 
 .compute_deltaX:
-	fild dword [eax]
 	fild dword [ebx]
+	fild dword [eax]
 	fsubp
 	fstp dword [deltaX]
 	ret
 .compute_deltaY:
-	fild dword [eax+4]
 	fild dword [ebx+4]
+	fild dword [eax+4]
 	fsubp
 	fstp dword [deltaY]
 	ret
@@ -105,8 +110,8 @@ bresenham:
 	fistp dword [deltaYSign]
 	ret
 .compute_deltaErr:
-	fld dword [deltaX]
 	fld dword [deltaY]
+	fld dword [deltaX]
 	fdivp
 	fabs
 	fstp dword [deltaErr]
@@ -117,6 +122,10 @@ bresenham:
 	mov [currY], eax
 	pop eax
 	ret
+.init_err:
+	fldz
+	fstp dword [err]
+	ret
 
 .test_plot:
 	push ebx
@@ -124,6 +133,7 @@ bresenham:
 	pop ebx
 	mov eax, ebx
 	call plot_point
+	popad
 	ret
 
 .uhoh:
@@ -141,5 +151,3 @@ plot_point:
 	add eax, ecx
 	mov [eax], byte '$'
 	ret
-
-signum:
