@@ -30,14 +30,14 @@ section .data
 	; The cube's object coordinates,
 	; which should never be mutated
 	FuckingCube:
-		vert_0 dd -0.5, -0.5, -0.5
-		vert_1 dd -0.5, -0.5,  0.5
-		vert_2 dd -0.5,  0.5, -0.5
-		vert_3 dd -0.5,  0.5,  0.5
-		vert_4 dd  0.5, -0.5, -0.5
-		vert_5 dd  0.5, -0.5,  0.5
-		vert_6 dd  0.5,  0.5, -0.5
-		vert_7 dd  0.5,  0.5,  0.5
+		vert_0 dd -0.8, -0.8, -0.8
+		vert_1 dd -0.8, -0.8,  0.8
+		vert_2 dd -0.8,  0.8, -0.8
+		vert_3 dd -0.8,  0.8,  0.8
+		vert_4 dd  0.8, -0.8, -0.8
+		vert_5 dd  0.8, -0.8,  0.8
+		vert_6 dd  0.8,  0.8, -0.8
+		vert_7 dd  0.8,  0.8,  0.8
 	VECTOR_SIZE 	equ vert_7-vert_6
 
 	; The cube's world coordinates
@@ -208,25 +208,6 @@ extern dot_product, rotate_vector, bresenham
 	.loop_end:
 	loop .render_loop
 	; Okay now we want to draw the points.
-
-	mov ecx, (VECTOR_SIZE*7)       ; 84 = vector alignment (12) * 7 vectors
-	.draw_points_loop:             ; There are 8 vectors but this is an
-	mov eax, w_vert_0              ;   array so we start counting at 0.
-	add eax, ecx
-	mov ebx, TwoDIntVector
-	call .project_vector
-	mov ebx, RenderBuffer
-	add ebx, [TwoDIntVector]       ; <- X-coordinate
-	mov eax, [TwoDIntVector+4]     ; <- Y-coordinate
-	mov edx, SCREEN_W              ; Y gets multiplied with screen width
-	mul edx                        ; before adding to RenderBuffer
-	add ebx, eax                   ; because it's a number of rows
-	mov [ebx], byte '*'            ; X is just a number of columns
-	sub ecx, VECTOR_SIZE           ; so we can just add X to RenderBuffer
-	cmp ecx, 0
-	jge .draw_points_loop          ; Subtract one vector size and loop back
-
-	;ret
 
 	mov ecx, (EDGES_END-EDGE_SIZE)
 	.draw_edges_loop:
