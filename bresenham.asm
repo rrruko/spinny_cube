@@ -23,6 +23,8 @@ global bresenham
 bresenham:
 	pushad
 	;jmp .test_plot                ; Jump here to just plot endpoints
+
+	call .order_start_end
 	
 	mov [buffer], ecx
 
@@ -138,6 +140,19 @@ bresenham:
 
 .uhoh:
 	popad
+	ret
+
+; If necessary, swap the eax and ebx vectors so x_end is greater than x_start
+.order_start_end:
+	push ecx
+	mov ecx, [ebx]
+	sub ecx, [eax]
+	jl .swap
+	jmp .done
+	.swap:
+	xchg eax, ebx
+	.done:
+	pop ecx
 	ret
 
 ; plot 2d vector in eax to buffer in ecx
