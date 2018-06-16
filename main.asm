@@ -8,7 +8,7 @@ PIXEL_COUNT equ SCREEN_W*SCREEN_H
 
 section .bss
 	RenderBuffer resb PIXEL_COUNT
-	
+
 section .data
 	; I stole the code for ClearTerm from here: https://stackoverflow.com/questions/30247644/clean-console-on-assembly
 	;
@@ -53,55 +53,60 @@ section .data
 		w_vert_7 dd 0.0, 0.0, 0.0
 
 	CubeEdges:
-		dd 0*12, 1*12
-		dd 1*12, 3*12
-		dd 2*12, 0*12
-		dd 3*12, 2*12
-		
-		dd 4*12, 5*12
-		dd 5*12, 7*12
-		dd 6*12, 4*12
-		dd 7*12, 6*12
+		dd 0, 1
+		dd 1, 3
+		dd 2, 0
+		dd 3, 2
 
-		dd 0*12, 4*12
-		dd 1*12, 5*12
-		dd 2*12, 6*12
-		dd 3*12, 7*12
+		dd 4, 5
+		dd 5, 7
+		dd 6, 4
+		dd 7, 6
+
+		dd 0, 4
+		dd 1, 5
+		dd 2, 6
+		dd 3, 7
+
 	 	EDGES_END  equ $
 		EDGE_COUNT equ 12
 		EDGE_SIZE  equ 8
-		
 
 	; These entries get filled in when the matrix update proc is called
 	RotationMatrix:
 		dd  1.0,  0.0,  0.0
-		dd  0.0, -0.0, -0.0
-		dd  0.0, -0.0, -0.0
+		dd  0.0,  0.0,  0.0
+		dd  0.0,  0.0,  0.0
 
 	DotProductOut dd 0
-	
+
 	TwoDIntVector dd 0, 0
 
+	TheNumberTwo    dd  2.00
 	TheNumberFive   dd  5.00
 	TheNumberTen    dd 10.00
 	TenSqrtThree    dd 17.33
 	TheNumberTwenty dd 20.00
-	TheNumberThirty dd 30.00
+	TheNumberForty  dd 40.00
 
 	timer dd 0.0
-	timestep dd 0.01
+	timestep dd 0.025
 
 	neg1 dd -1.0
 
 	bumbo1 dd 0, 0
 	bumbo2 dd 79, 3
 
+	projection_thingy dd 10.0
+
+	NaNTest dd 0.0
+
 section .text
 extern dot_product, rotate_vector, bresenham
 %include "mov_vector.mac"
 	_start:
 	jmp .main_loop
-	
+
 	; Linux syscall to `write`. Print the ClearTerm string to stdout.
 	.clear_terminal:
 	mov eax, 4
@@ -110,20 +115,12 @@ extern dot_product, rotate_vector, bresenham
 	mov edx, CLEARLEN
 	int 80h
 	ret
-	
+
 	; Sleep for 1/60 seconds!
 	.sys_nanosleep:
 	mov eax, 162
 	mov ebx, OneSixtiethSecond
 	mov ecx, 0
-	int 80h
-	ret
-	
-	.print_vertex_test:
-	mov eax, 4
-	mov ebx, 1
-	mov ecx, vert_2
-	mov edx, 16 ; a little more than the first vector
 	int 80h
 	ret
 
@@ -211,8 +208,10 @@ extern dot_product, rotate_vector, bresenham
 
 	mov ecx, (EDGES_END-EDGE_SIZE)
 	.draw_edges_loop:
-	  mov eax, w_vert_0
-	  add eax, [ecx]
+	  mov eax, [ecx]
+	  mov ebx, VECTOR_SIZE
+	  mul ebx
+	  add eax, w_vert_0
 	  mov ebx, TwoDIntVector
 	  call .project_vector
 	  mov eax, bumbo1
@@ -221,8 +220,10 @@ extern dot_product, rotate_vector, bresenham
 	  add eax, 4
 	  mov edx, [ebx+4]
 	  mov [eax], edx
-	  mov eax, w_vert_0
-	  add eax, [ecx+4]
+	  mov eax, [ecx+4]
+	  mov ebx, VECTOR_SIZE
+	  mul ebx
+	  add eax, w_vert_0
 	  mov ebx, TwoDIntVector
 	  call .project_vector
 	  mov eax, bumbo2
@@ -243,56 +244,36 @@ extern dot_product, rotate_vector, bresenham
 	cmp ecx, CubeEdges
 	jge .draw_edges_loop
 
+	ret
 
-	ret
-	
-	; Debug procedure
-	.whatinthegoddamn:
-	mov eax, 4
-	mov ebx, 1
-	mov ecx, TwoDIntVector
-	mov edx, 8
-	int 80h
-	ret
-	
 	; Project a 3d floating vector (at eax) to a 2d int vector (at ebx)
 	.project_vector:
-	fld dword [eax+4]
+	push ecx
+
+	fld dword [TheNumberTwo]
+	fadd dword [eax]
+	fstp dword [projection_thingy]
+
+	; Shrink the vertical axis by half since terminal characters aren't
+	; squares
+	fld dword [eax+8]
 	fmul dword [TheNumberTen]
+	fdiv dword [projection_thingy]
 	fadd dword [TheNumberTwenty]
 	fistp dword [ebx+4]
-	fld dword [eax+8]
+
+	fld dword [eax+4]
 	fmul dword [TheNumberTwenty]
-	fadd dword [TheNumberThirty]
-	fadd dword [TheNumberTen]
+	fdiv dword [projection_thingy]
+	fadd dword [TheNumberForty]
 	fistp dword [ebx]
-	ret
 
-	; This constructs a matrix that rotates a
-	; vector by (timer) radians along the X axis only.
-	.update_matrix:
-	; increment timer by timestep
-	fld dword [timer]
-	fadd dword [timestep]
-	fstp dword [timer]
-
-	; write cosine entries to the matrix based on current time
-	fld dword [timer]
-	fcos
-	fst  dword [RotationMatrix+16]
-	fstp dword [RotationMatrix+32]
-
-	; write sine entries to the matrix based on current time
-	fld dword [timer]
-	fsin
-	fst  dword [RotationMatrix+28]
-	fmul dword [neg1]
-	fstp dword [RotationMatrix+20]
+	pop ecx
 	ret
 
 	; This constructs a matrix that rotates a
 	; vector by (timer) radians along the X and Y axes.
-	.update_matrix_alt:
+	.update_matrix:
 	fld dword [timer]
 	fadd dword [timestep]
 	fstp dword [timer]
@@ -309,10 +290,10 @@ extern dot_product, rotate_vector, bresenham
 	fsin
 	fst dword [RotationMatrix+8]
 	fst dword [RotationMatrix+28]
-	
+
 	fmul st0, st0
 	fstp dword [RotationMatrix+12]
-	
+
 	fld dword [timer]
 	fsin
 	fld dword [timer]
@@ -320,18 +301,18 @@ extern dot_product, rotate_vector, bresenham
 	fmul
 	fmul dword [neg1]
 	fst dword [RotationMatrix+20]
-	fst dword [RotationMatrix+24]
+	fstp dword [RotationMatrix+24]
 	ret
-	
+
 	.main_loop:
 	call .sys_nanosleep
 	call .clear_terminal
 	call .rotate_cube_step
-	call .update_matrix_alt
+	call .update_matrix
 	call .render_to_buffer
 	call .print_cube_rep
 	jmp .main_loop
-	
+
 	; Exit syscall to signal the end of this process.
 	.finish:
 	mov eax, 1

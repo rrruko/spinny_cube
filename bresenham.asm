@@ -164,5 +164,5 @@ plot_point:
 	pop dword ebx
 	add eax, [ebx]
 	add eax, ecx
-	mov [eax], byte '$'
+	mov [eax], byte '@'
 	ret
