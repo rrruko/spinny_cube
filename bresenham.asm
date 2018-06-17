@@ -60,9 +60,6 @@ bresenham:
 		fld dword [deltaErr]
 		faddp
 		fstp dword [err]
-		;pushad
-		;call .wtf
-		;popad
 		
 		.adjust_y: ; while error >= 0.5
 			fld dword [err]
