@@ -105,7 +105,6 @@ section .data
 
 section .text
 extern dot_product, rotate_vector, bresenham
-%include "mov_vector.mac"
 	_start:
 
 	jmp .main_loop
