@@ -16,6 +16,8 @@ global bresenham
 
 ; eax points to the start position, ebx points to the end
 ; ecx points to a buffer
+; 
+; I ported this procedure I found on Rosetta Code from C to x86
 bresenham:
 	pushad
 	mov [buffer], ecx
@@ -77,20 +79,6 @@ line_loop:
 	sub ebx, [startY]
 	jz .break
 	.nvm:
-
-	;jmp .wtfend
-	; wtf
-	mov eax, [startX]
-	cmp eax, 0
-	jl .break
-	cmp eax, 79
-	jg .break
-	mov eax, [startY]
-	cmp eax, 0
-	jl .break
-	cmp eax, 39
-	jg .break
-	;.wtfend:
 
 	; e2 = err
 	mov eax, [err]

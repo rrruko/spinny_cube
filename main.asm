@@ -55,17 +55,17 @@ section .data
 	WORLD_CUBE_END equ $
 
 	CubeEdges:
-		dd 0, 1
+		dd 0, 1                ; Front face edges
 		dd 1, 3
 		dd 2, 0
 		dd 3, 2
 
-		dd 4, 5
+		dd 4, 5                ; Back face edges
 		dd 5, 7
 		dd 6, 4
 		dd 7, 6
 
-		dd 0, 4
+		dd 0, 4                ; Middle edges
 		dd 1, 5
 		dd 2, 6
 		dd 3, 7
@@ -85,9 +85,7 @@ section .data
 	TwoDIntVector dd 0, 0
 
 	TheNumberTwo    dd  2.00
-	TheNumberFive   dd  5.00
 	TheNumberTen    dd 10.00
-	TenSqrtThree    dd 17.33
 	TheNumberTwenty dd 20.00
 	TheNumberForty  dd 40.00
 
@@ -99,7 +97,7 @@ section .data
 	StartVector dd 0, 0
 	EndVector   dd 0, 0
 
-	ProjectionThingy dd 10.0
+	ProjectionThingy dd 0.0
 
 	xOffs dd 0.0
 	yOffs dd 0.0
@@ -172,8 +170,11 @@ extern dot_product, rotate_vector, bresenham
 	.loop_end:
 	loop .render_loop
 
-	; Okay now we want to draw the points.
-
+	; Okay now we want to draw the edges.
+	; Iterate through the edges table, use each entry to look up
+	; a pair of joined vertices, and pass those two vectors
+	; into bresenham's line algorithm (after projecting them to 2d).
+	
 	mov ecx, (EDGES_END-EDGE_SIZE)
 	.draw_edges_loop:
 	  mov eax, [ecx]
@@ -201,17 +202,15 @@ extern dot_product, rotate_vector, bresenham
 	  mov edx, [ebx+4]
 	  mov [eax], edx
 
-	  push ecx
-	  mov eax, StartVector
-	  mov ebx, EndVector
-	  mov ecx, RenderBuffer
-	  call bresenham
+	  push ecx                     ; We acquired the 2d vectors, so we
+	  mov eax, StartVector         ;   are ready to draw the line. We push
+	  mov ebx, EndVector           ;   and pop ecx so we don't lose it when
+	  mov ecx, RenderBuffer        ;   bresenham overwrites it, since we
+	  call bresenham               ;   need it in order to keep iterating.
 	  pop ecx
-
 	sub ecx, EDGE_SIZE
 	cmp ecx, CubeEdges
 	jge .draw_edges_loop
-
 	ret
 
 	; Project a 3d floating vector (at eax) to a 2d int vector (at ebx)
@@ -263,32 +262,38 @@ extern dot_product, rotate_vector, bresenham
 	;
 	; | cosx	0	sinx		|
 	; | sin^2 x	cosx	-sinx cosx	|
-	; | -cosx sinx	sinx	cos^2 x		|
+	; | -sinx cosx	sinx	cos^2 x		|
 	;
 	.update_matrix:
 	fld dword [timer]
 	fadd dword [timestep]
 	fstp dword [timer]
 
+	; 0
 	fldz
 	fstp dword [RotationMatrix+4]
 
+	; cosx
 	fld dword [timer]
 	fcos
 	fst dword [RotationMatrix]
 	fst dword [RotationMatrix+16]
 
+	; cos^2 x
 	fmul st0, st0
 	fstp dword [RotationMatrix+32]
 
+	; sinx
 	fld dword [timer]
 	fsin
 	fst dword [RotationMatrix+8]
 	fst dword [RotationMatrix+28]
 
+	; sin^2 x
 	fmul st0, st0
 	fstp dword [RotationMatrix+12]
 
+	; -sinx cosx
 	fld dword [timer]
 	fsin
 	fld dword [timer]
@@ -302,24 +307,22 @@ extern dot_product, rotate_vector, bresenham
 	; Move the cube around on screen according to the sin and cos of
 	; the current timer value.
 	.update_offsets:
-	fld dword [timer]
+	fld dword [timer]              ; Set xOffs to 20cos(t/2)
 	fdiv dword [TheNumberTwo]
 	fcos
 	fld dword [TheNumberTwenty]
 	fmulp
 	fstp dword [xOffs]
-	fld dword [timer]
+	fld dword [timer]              ; Set yOffs to 10sin(t)
 	fsin
 	fld dword [TheNumberTen]
 	fmulp
 	fstp dword [yOffs]
-	fld dword [timer]
-	fldl2e
-	fdivp
-	fsin
-	;fld1
-	;faddp
-	fstp dword [zOffs]
+	fld dword [timer]              ; Set zOffs to sin(t/c)
+	fldl2e                         ;   where c is some random builtin
+	fdivp                          ;   constant (roughly 1.44) which I
+	fsin                           ;   just chose to make the period
+	fstp dword [zOffs]             ;   irrational.
 	ret
 
 	.main_loop:
