@@ -1,7 +1,7 @@
 section .data
 	buffer dd 0
-	startX dd 0
-	startY dd 0
+	currX dd 0
+	currY dd 0
 	endX dd 0
 	endY dd 0
 	diffX dd 0
@@ -22,9 +22,9 @@ bresenham:
 	pushad
 	mov [buffer], ecx
 	mov ecx, [eax]
-	mov [startX], ecx
+	mov [currX], ecx
 	mov ecx, [eax+4]
-	mov [startY], ecx
+	mov [currY], ecx
 	mov ecx, [ebx]
 	mov [endX], ecx
 	mov ecx, [ebx+4]
@@ -32,7 +32,7 @@ bresenham:
 
 set_diffX_and_sx:
 	mov eax, [endX]
-	sub eax, [startX]
+	sub eax, [currX]
 	mov ebx, 1
 	jg .proceed
 	neg ebx
@@ -42,7 +42,7 @@ set_diffX_and_sx:
 	mov [diffX], eax
 set_diffY_and_sy:
 	mov eax, [endY]
-	sub eax, [startY]
+	sub eax, [currY]
 	mov ebx, 1
 	jg .proceed
 	neg ebx
@@ -66,17 +66,16 @@ set_err:
 	mov [err], eax
 line_loop:
 	; setPixel(x0, y0)
-	mov eax, [startX]
-	mov ebx, [startY]
+	mov eax, [currX]
+	mov ebx, [currY]
 	call set_pixel
-	;jmp break
 
 	; if (x0 == x1 && y0 == y1) break
 	mov eax, [endX]
-	sub eax, [startX]
+	sub eax, [currX]
 	jnz .nvm
 	mov ebx, [endY]
-	sub ebx, [startY]
+	sub ebx, [currY]
 	jz .break
 	.nvm:
 
@@ -100,18 +99,18 @@ line_loop:
 	sub eax, [diffY]
 	mov [err], eax
 
-	mov eax, [startX]
+	mov eax, [currX]
 	add eax, [sx]
-	mov [startX], eax
+	mov [currX], eax
 	jmp .e2_gt_neg_diffX_return
 .e2_less_diffY:
 	mov eax, [err]
 	add eax, [diffX]
 	mov [err], eax
 
-	mov eax, [startY]
+	mov eax, [currY]
 	add eax, [sy]
-	mov [startY], eax
+	mov [currY], eax
 	jmp .e2_less_diffY_return
 .break:
 	popad
