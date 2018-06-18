@@ -84,6 +84,9 @@ section .data
 
 	TwoDIntVector dd 0, 0
 
+	TestVectorS dd 8, 8
+	TestVectorE dd 10, 7	
+
 	TheNumberTwo    dd  2.00
 	TheNumberFive   dd  5.00
 	TheNumberTen    dd 10.00
@@ -100,7 +103,7 @@ section .data
 	EndVector   dd 0, 0
 
 	ProjectionThingy dd 10.0
-	
+
 	xOffs dd 0.0
 	yOffs dd 0.0
 	zOffs dd 0.0
@@ -211,6 +214,11 @@ extern dot_product, rotate_vector, bresenham
 	sub ecx, EDGE_SIZE
 	cmp ecx, CubeEdges
 	jge .draw_edges_loop
+
+	mov eax, TestVectorS
+	mov ebx, TestVectorE
+	mov ecx, RenderBuffer
+	call bresenham
 	ret
 
 	; Project a 3d floating vector (at eax) to a 2d int vector (at ebx)
