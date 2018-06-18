@@ -58,7 +58,9 @@ set_err:
 	.err_is_diffX:
 		mov eax, [diffX]
 	.proceed:
-	sar eax, 1
+	mov ebx, 2
+	cdq
+	idiv ebx
 	mov [err], eax
 line_loop:
 	; setPixel(x0, y0)
